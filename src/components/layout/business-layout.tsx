@@ -1,0 +1,10 @@
+import { NavLink, Outlet } from "react-router-dom";
+import { Building2, FileClock, LogOut, UserRound } from "lucide-react";
+import { useSession } from "@/features/auth/use-session";
+import { roleLabel } from "@/lib/format";
+
+export function BusinessLayout() {
+  const { user, logout } = useSession();
+  const prefix = user?.role === "CORPORATE" ? "/corporate" : user?.role === "MERCHANT" ? "/business" : "/commercial";
+  return <div className="min-h-screen bg-[#f5f7f5] text-ink"><header className="border-b border-line bg-white"><div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 lg:px-8"><div><p className="font-display text-xl font-bold">Nusa<span className="text-orange-500">.relate</span></p><p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-teal-600">Business workspace</p></div><div className="flex items-center gap-4"><div className="hidden text-right sm:block"><p className="text-sm font-bold">{user?.username}</p><p className="text-xs text-slate-500">{user ? roleLabel(user.role) : ""}</p></div><button aria-label="Keluar" className="rounded-xl p-2 text-slate-500 hover:bg-paper" onClick={() => void logout()}><LogOut size={18} /></button></div></div></header><div className="mx-auto flex max-w-7xl gap-8 px-5 py-6 lg:px-8"><aside className="hidden w-52 shrink-0 space-y-2 lg:block"><NavLink to={prefix} end className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold ${isActive ? "bg-teal-600 text-white" : "text-slate-600 hover:bg-white"}`}><Building2 size={18} />Overview</NavLink><NavLink to={`${prefix}/financing`} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold ${isActive ? "bg-teal-600 text-white" : "text-slate-600 hover:bg-white"}`}><FileClock size={18} />Financing</NavLink><NavLink to={`${prefix}/profile`} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold ${isActive ? "bg-teal-600 text-white" : "text-slate-600 hover:bg-white"}`}><UserRound size={18} />Profile</NavLink></aside><main className="min-w-0 flex-1"><Outlet /></main></div></div>;
+}

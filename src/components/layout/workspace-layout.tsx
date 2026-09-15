@@ -1,0 +1,11 @@
+import { NavLink, Outlet } from "react-router-dom";
+import { BarChart3, BriefcaseBusiness, Database, FileClock, LogOut, ShieldCheck, UsersRound } from "lucide-react";
+import { useSession } from "@/features/auth/use-session";
+import { roleLabel } from "@/lib/format";
+
+const links = [{ to: "/staff", label: "Portfolio", icon: BarChart3 }, { to: "/staff/at-risk", label: "At-risk customers", icon: UsersRound }, { to: "/staff/campaigns", label: "Interventions", icon: BriefcaseBusiness }, { to: "/staff/models", label: "Model & data", icon: Database }, { to: "/staff/applications", label: "Credit workflow", icon: FileClock }];
+
+export function WorkspaceLayout() {
+  const { user, logout } = useSession();
+  return <div className="min-h-screen bg-[#f4f2ee] text-ink"><aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-line bg-[#202d35] px-5 py-6 text-white lg:block"><p className="font-display text-xl font-bold">Nusa<span className="text-orange-400">.relate</span></p><p className="mt-1 text-xs text-slate-300">Internal decision support</p><div className="mt-12 space-y-1">{links.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} end={to === "/staff"} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold transition ${isActive ? "bg-white/10 text-orange-300" : "text-slate-300 hover:bg-white/5"}`}><Icon size={18} />{label}</NavLink>)}</div><div className="absolute bottom-6 left-5 right-5 border-t border-white/10 pt-4"><p className="text-xs text-slate-400">Demo environment</p><button className="mt-3 flex items-center gap-2 text-sm font-bold text-slate-200" onClick={() => void logout()}><LogOut size={16} />Keluar</button></div></aside><div className="lg:pl-64"><header className="flex items-center justify-between border-b border-line bg-white px-5 py-4 lg:px-10"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">Workspace</p><p className="mt-1 text-sm font-bold text-slate-600">{user ? roleLabel(user.role) : ""}</p></div><div className="flex items-center gap-3"><ShieldCheck size={18} className="text-teal-600" /><span className="text-xs font-bold text-slate-500">Synthetic data only</span></div></header><main className="mx-auto max-w-[1440px] px-5 py-8 lg:px-10"><Outlet /></main></div></div>;
+}
