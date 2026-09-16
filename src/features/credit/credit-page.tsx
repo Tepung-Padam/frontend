@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { ErrorState } from "@/components/feedback/error-state";
 import { EmptyState } from "@/components/feedback/empty-state";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function CreditPage() {
   const location = useLocation();
@@ -18,9 +21,31 @@ export function CreditPage() {
       ? "/business/financing"
       : "/app/financing";
 
+  const isConsumer = basePath === "/app/financing";
+
   const query = useQuery({
     queryKey: ["credit-applications", basePath],
     queryFn: () => api.ownCreditApplications(),
+  });
+
+  const [isCreating, setIsCreating] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState(isConsumer ? "PERSONAL" : "WORKING_CAPITAL");
+  const queryClient = useQueryClient();
+
+  const createMutation = useMutation({
+    mutationFn: () => 
+      api.createCreditApplication({
+        product_category: category,
+        requested_amount: amount,
+        currency: "IDR",
+        idempotency_key: crypto.randomUUID(),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["credit-applications", basePath] });
+      setIsCreating(false);
+      setAmount("");
+    },
   });
 
   if (query.isLoading) return <LoadingState />;
@@ -28,11 +53,65 @@ export function CreditPage() {
 
   return (
     <div className="space-y-6 pt-3">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">Financing</p>
-        <h1 className="mt-2 font-display text-3xl font-bold">Progress pengajuan</h1>
-        <p className="mt-2 text-slate-500">Seluruh pengajuan di sini bersifat simulasi, bukan keputusan lending.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">Financing</p>
+          <h1 className="mt-2 font-display text-3xl font-bold">Progress pengajuan</h1>
+          <p className="mt-2 text-slate-500">Seluruh pengajuan di sini bersifat simulasi, bukan keputusan lending.</p>
+        </div>
+        <Button onClick={() => setIsCreating(!isCreating)} variant={isCreating ? "secondary" : "primary"}>
+          {isCreating ? "Batal" : "Ajukan Simulasi"}
+        </Button>
       </div>
+
+      {isCreating && (
+        <Card className="p-5 bg-orange-50/50 border-orange-200">
+          <h2 className="font-bold text-lg mb-4">Pengajuan Simulasi Kredit</h2>
+          <div className="space-y-4 max-w-sm">
+            <div>
+              <label className="block text-sm font-medium mb-1">Kategori Produk</label>
+              <select 
+                className="w-full rounded-md border border-line bg-white p-2 text-sm"
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                disabled={createMutation.isPending}
+              >
+                {isConsumer ? (
+                  <option value="PERSONAL">Personal</option>
+                ) : (
+                  <>
+                    <option value="WORKING_CAPITAL">Working Capital</option>
+                    <option value="INVESTMENT">Investment</option>
+                  </>
+                )}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Jumlah Pengajuan (IDR)</label>
+              <input 
+                type="number" 
+                className="w-full rounded-md border border-line bg-white p-2 text-sm"
+                placeholder="Misal: 5000000"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                disabled={createMutation.isPending}
+              />
+            </div>
+            
+            {createMutation.isError && (
+              <p className="text-sm text-red-600 font-medium">Gagal mengajukan. Pastikan nominal valid.</p>
+            )}
+
+            <Button 
+              className="w-full" 
+              onClick={() => createMutation.mutate()}
+              disabled={createMutation.isPending || !amount}
+            >
+              {createMutation.isPending ? "Mengajukan..." : "Kirim Pengajuan"}
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {query.data.items.length === 0 ? (
         <EmptyState title="Belum ada pengajuan" detail="Belum ada pengajuan simulasi yang tercatat untuk akun ini." />

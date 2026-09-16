@@ -7,5 +7,85 @@ import { roleLabel } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 
-export function BusinessHomePage() { const { user } = useSession(); const merchant = useQuery({ queryKey: ["merchant-summary"], queryFn: api.merchantSummary, enabled: user?.role === "MERCHANT" }); const corporate = useQuery({ queryKey: ["corporate-summary"], queryFn: api.corporateSummary, enabled: user?.role === "CORPORATE" }); const loading = merchant.isLoading || corporate.isLoading; if (loading) return <p>Memuat business summary...</p>; const error = merchant.isError || corporate.isError; const summary = merchant.data ?? corporate.data; if (error || !summary) return <div className="space-y-6"><CapabilityGap title="Business summary belum tersedia" detail="Backend menolak atau belum memiliki data summary untuk persona ini." /></div>; return <div className="space-y-6"><div className="flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-600">{user ? roleLabel(user.role) : "Business"}</p><h1 className="mt-2 font-display text-3xl font-bold">Business overview</h1><p className="mt-2 text-slate-500">Ringkasan hubungan bisnis, cash flow, dan financing progress.</p></div><Badge tone="warning">SYNTHETIC</Badge></div>{"metrics" in summary ? <Card className="grid gap-5 p-6 sm:grid-cols-3"><Metric label="Settlement inflow" value={summary.metrics.incoming_settlement} /><Metric label="Retained-ratio proxy" value={summary.metrics.retained_ratio_proxy === null ? "Unavailable" : `${Math.round(summary.metrics.retained_ratio_proxy * 100)}%`} /><Metric label="Risk indicator" value={summary.risk_indicator} /></Card> : <Card className="grid gap-5 p-6 sm:grid-cols-3"><Metric label="Company" value={summary.company_ref} /><Metric label="30d net cash flow" value={summary.cashflow_totals_30d.net_cashflow_30d} /><Metric label="Score" value={summary.score_status.status} /></Card>}<p className="text-sm text-slate-500">{summary.disclaimer}</p></div>; }
-function Metric({ label, value }: { label: string; value: string }) { return <div><Building2 size={18} className="text-teal-600" /><p className="mt-4 text-xs font-bold uppercase tracking-wider text-slate-400">{label}</p><p className="mt-1 font-bold">{value}</p></div>; }
+export function BusinessHomePage() {
+  const { user } = useSession();
+  const merchant = useQuery({
+    queryKey: ["merchant-summary"],
+    queryFn: api.merchantSummary,
+    enabled: user?.role === "MERCHANT",
+  });
+  const corporate = useQuery({
+    queryKey: ["corporate-summary"],
+    queryFn: api.corporateSummary,
+    enabled: user?.role === "CORPORATE",
+  });
+  const loading = merchant.isLoading || corporate.isLoading;
+  if (loading) return <p>Memuat business summary...</p>;
+  const error = merchant.isError || corporate.isError;
+  const summary = merchant.data ?? corporate.data;
+  if (error || !summary)
+    return (
+      <div className="space-y-6">
+        <CapabilityGap
+          title="Business summary belum tersedia"
+          detail="Backend menolak atau belum memiliki data summary untuk persona ini."
+        />
+      </div>
+    );
+  return (
+    <div className="space-y-6">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-600">
+            {user ? roleLabel(user.role) : "Business"}
+          </p>
+          <h1 className="mt-2 font-display text-3xl font-bold">
+            Business overview
+          </h1>
+          <p className="mt-2 text-slate-500">
+            Ringkasan hubungan bisnis, cash flow, dan financing progress.
+          </p>
+        </div>
+        <Badge tone="warning">SYNTHETIC</Badge>
+      </div>
+      {"metrics" in summary ? (
+        <Card className="grid gap-5 p-6 sm:grid-cols-3">
+          <Metric
+            label="Settlement inflow"
+            value={summary.metrics.incoming_settlement}
+          />
+          <Metric
+            label="Retained-ratio proxy"
+            value={
+              summary.metrics.retained_ratio_proxy === null
+                ? "Unavailable"
+                : `${Math.round(summary.metrics.retained_ratio_proxy * 100)}%`
+            }
+          />
+          <Metric label="Status" value={summary.status} />
+        </Card>
+      ) : (
+        <Card className="grid gap-5 p-6 sm:grid-cols-3">
+          <Metric label="Company" value={summary.company_ref} />
+          <Metric
+            label="30d net cash flow"
+            value={summary.cashflow_totals_30d.net_cashflow_30d}
+          />
+          <Metric label="Score" value={summary.score_status.status} />
+        </Card>
+      )}
+      <p className="text-sm text-slate-500">{summary.disclaimer}</p>
+    </div>
+  );
+}
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <Building2 size={18} className="text-teal-600" />
+      <p className="mt-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+        {label}
+      </p>
+      <p className="mt-1 font-bold">{value}</p>
+    </div>
+  );
+}

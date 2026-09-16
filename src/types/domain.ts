@@ -8,6 +8,7 @@ export type TransactionDirection = "CREDIT" | "DEBIT";
 export type TransactionChannel = "TRANSFER" | "QRIS_SIMULATED" | "BILL_PAYMENT" | "CARD" | "ATM" | "SALARY" | "LOAN_PAYMENT" | "SETTLEMENT_SIMULATED" | "OTHER";
 export type CreditProductCategory = "PERSONAL" | "WORKING_CAPITAL" | "INVESTMENT";
 export type CreditStage = "SUBMITTED" | "DOCUMENTS_RECEIVED" | "FINANCIAL_ANALYSIS" | "FIELD_SURVEY" | "COMMITTEE_REVIEW" | "APPROVED_SIMULATION" | "REJECTED_SIMULATION";
+export type CreditEventType = "STAGE_CHANGED" | "DOCUMENT_UPDATED";
 export type DocumentStatus = "PENDING" | "RECEIVED" | "REVIEWED";
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 export type BookingStatus = "PENDING" | "CONFIRMED" | "CHECKED_IN" | "SERVING" | "COMPLETED" | "CANCELLED" | "EXPIRED" | "NO_SHOW";
@@ -129,6 +130,20 @@ export interface CreditApplication {
   documents: CreditDocument[];
 }
 
+export interface CreditEvent {
+  id: string;
+  application_id: string;
+  actor_user_id: string;
+  sequence: number;
+  event_type: CreditEventType;
+  from_stage: CreditStage | null;
+  to_stage: CreditStage | null;
+  document_requirement_id: string | null;
+  document_status: DocumentStatus | null;
+  customer_note: string | null;
+  occurred_at: string;
+}
+
 export interface OwnSummary {
   customer_ref: string;
   persona: string;
@@ -230,7 +245,47 @@ export interface RelationshipScore { id: string; customer_id: string; score: num
 export interface Recommendation { id: string; customer_id: string; method: string; action_type: ActionType; priority_score: number; title: string; description: string; reason: string; supporting_signals: Record<string, unknown>[]; status: string; is_simulation: boolean; created_at: string; }
 export interface AtRiskCustomer { id: string; customer_ref: string; customer_type: CustomerType; segment: string | null; state: CustomerState; probability: number; risk_level: RiskLevel; relationship_score: number | null; priority_score: number | null; prediction_timestamp: string; recommended_action: ActionType | null; }
 export interface RetentionSummary { as_of_date: string; customers: { total: number; active: number; at_risk: number; silent_churn: number; reactivated: number }; risk: Record<RiskLevel, number>; relationship_score: { average: number; weak: number; moderate: number; strong: number }; merchant: { total: number; high_leakage_risk: number }; campaigns: { active_simulations: number }; data_disclosure: Record<string, boolean>; }
-export interface MerchantRetention { customer_id: string; customer_ref: string; as_of_date: string; window_days: number; metrics: { incoming_settlement: string; matched_outgoing_transfer: string; total_outgoing: string; average_balance: string; retained_ratio_proxy: number | null }; risk_indicator: RiskLevel; recommendation: { action_type: ActionType; title: string } | null; data_source_type: DataSourceType; disclaimer: string; }
+export interface MerchantRetention {
+  customer_id: string;
+  customer_ref: string;
+  as_of_date: string;
+  window_days: number;
+  metrics: {
+    incoming_settlement: string;
+    matched_outgoing_transfer: string;
+    total_outgoing: string;
+    average_balance: string | null;
+    retained_ratio_proxy: number | null;
+  };
+  risk_indicator: RiskLevel | null;
+  status: string;
+  balance_days_available: number;
+  complete_match_window: boolean;
+  outflow_match_hours: number;
+  recommendation: { action_type: ActionType; title: string } | null;
+  data_source_type: DataSourceType;
+  disclaimer: string;
+}
+export interface MerchantSelfSummary {
+  customer_id: string;
+  customer_ref: string;
+  as_of_date: string;
+  window_days: number;
+  metrics: {
+    incoming_settlement: string;
+    matched_outgoing_transfer: string;
+    total_outgoing: string;
+    average_balance: string | null;
+    retained_ratio_proxy: number | null;
+  };
+  status: string;
+  balance_days_available: number;
+  complete_match_window: boolean;
+  outflow_match_hours: number;
+  data_source_type: DataSourceType;
+  disclaimer: string;
+}
 export interface CorporateSummary { customer_id: string; customer_ref: string; company_ref: string; industry_category: string; business_size: string | null; relationship_start_date: string | null; as_of_date: string; accounts_summary: { total_accounts: number; primary_currency: string; total_balance: string }; cashflow_totals_30d: { incoming_30d: string; outgoing_30d: string; net_cashflow_30d: string }; active_simulated_credit_requests_count: number; score_status: { status: string; reason_code: string; message: string }; disclaimer: string; }
 export interface ActiveModel { id: string | null; name: string; type: "LOGISTIC_REGRESSION" | "XGBOOST"; version: string; feature_schema_version: string; training_dataset_version: string; training_timestamp: string | null; thresholds: { medium: number; high: number }; metrics: { roc_auc: number | null; pr_auc: number | null; precision_at_10_percent: number | null; recall_at_10_percent: number | null; lift_at_10_percent: number | null }; is_available: boolean; disclosure: string; }
 export interface Campaign { id: string; name: string; campaign_type: ActionType; status: CampaignStatus; description: string; is_simulation: boolean; created_at: string; updated_at: string; }
+export interface CampaignTarget { id: string; campaign_id: string; customer_id: string; recommendation_id: string | null; assigned_at: string; }

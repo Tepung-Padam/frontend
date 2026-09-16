@@ -6,7 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { ErrorState } from "@/components/feedback/error-state";
-import { formatCurrency } from "@/lib/format";
 
 export function ConsumerHomePage() {
   const summary = useQuery({ 

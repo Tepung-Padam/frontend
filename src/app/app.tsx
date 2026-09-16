@@ -14,6 +14,7 @@ import { MessageDetailPage } from "@/features/inbox/message-detail-page";
 import { ProfilePage } from "@/features/profile/profile-page";
 import { WorkspaceHomePage } from "@/features/analytics/workspace-home-page";
 import { RetentionPage } from "@/features/retention/retention-page";
+import { CustomerDetailPage } from "@/features/retention/customer-detail-page";
 import { AdminPage } from "@/features/admin/admin-page";
 import { RequireAuth } from "@/routes/guards";
 import { BusinessHomePage } from "@/features/merchant/business-home-page";
@@ -44,7 +45,7 @@ export function App() {
         </Route>
       </Route>
 
-      <Route element={<RequireAuth roles={["MERCHANT", "CORPORATE"]} />}>
+      <Route element={<RequireAuth roles={["MERCHANT"]} />}>
         <Route element={<BusinessLayout />}>
           <Route path="/business" element={<BusinessHomePage />} />
           <Route path="/business/financing" element={<CreditPage />} />
@@ -54,7 +55,11 @@ export function App() {
           />
           <Route path="/business/profile" element={<ProfilePage />} />
           <Route path="/business/*" element={<BusinessHomePage />} />
+        </Route>
+      </Route>
 
+      <Route element={<RequireAuth roles={["CORPORATE"]} />}>
+        <Route element={<BusinessLayout />}>
           <Route path="/corporate" element={<BusinessHomePage />} />
           <Route path="/corporate/financing" element={<CreditPage />} />
           <Route
@@ -70,6 +75,7 @@ export function App() {
         <Route element={<WorkspaceLayout />}>
           <Route path="/staff" element={<WorkspaceHomePage />} />
           <Route path="/staff/at-risk" element={<RetentionPage />} />
+          <Route path="/staff/at-risk/:id" element={<CustomerDetailPage />} />
           <Route path="/staff/campaigns" element={<CampaignsPage />} />
           <Route path="/staff/models" element={<ModelPage />} />
           <Route path="/staff/applications" element={<StaffCreditPage />} />

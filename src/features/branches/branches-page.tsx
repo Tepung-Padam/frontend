@@ -23,10 +23,39 @@ export function BranchesPage() {
 
 function BranchListPage() {
   const [city, setCity] = useState("");
+  const [nearestEnabled, setNearestEnabled] = useState(false);
+  const [nearestBranch, setNearestBranch] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  // Handle geolocation for nearest branch
+  const findNearestBranch = () => {
+    if (!navigator.geolocation) {
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setNearestBranch({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setNearestEnabled(true);
+      },
+      () => {
+        // Permission denied - fallback to city search
+        setNearestEnabled(false);
+      },
+      { enableHighAccuracy: false, timeout: 10000 }
+    );
+  };
 
   const query = useQuery({
-    queryKey: ["branches", city],
-    queryFn: () => api.branches(city.trim() || undefined),
+    queryKey: ["branches", city, nearestEnabled ? "nearest" : "all", nearestBranch],
+    queryFn: () => {
+      if (nearestBranch) {
+        return api.branches({ latitude: nearestBranch.latitude, longitude: nearestBranch.longitude, radius_km: 10, page_size: 5 });
+      }
+      return api.branches({ city: city.trim() || undefined });
+    },
+    enabled: !nearestBranch || Boolean(nearestBranch),
   });
 
   if (query.isLoading) {
@@ -80,7 +109,11 @@ function BranchListPage() {
               className="min-h-11 w-full rounded-xl border border-line bg-white pl-11 pr-4 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
               placeholder="Cari berdasarkan kota"
               value={city}
-              onChange={(event) => setCity(event.target.value)}
+              onChange={(event) => {
+                setCity(event.target.value);
+                setNearestBranch(null);
+                setNearestEnabled(false);
+              }}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   void query.refetch();
@@ -89,20 +122,31 @@ function BranchListPage() {
             />
           </div>
 
+          <Button variant="secondary" onClick={() => { findNearestBranch(); void query.refetch(); }}>
+            <MapPin size={16} className="mr-2" />
+            Terdekat
+          </Button>
+
           <Button onClick={() => void query.refetch()}>
             Cari cabang
           </Button>
         </div>
+
+        {nearestBranch && (
+          <p className="mt-2 text-xs text-slate-500">
+            Menampilkan cabang dalam radius 10km dari lokasi Anda.
+          </p>
+        )}
       </Card>
 
-      {query.data.length === 0 ? (
+      {(!query.data.items || query.data.items.length === 0) ? (
         <EmptyState
           title="Cabang tidak ditemukan"
           detail="Coba kota lain atau hapus filter pencarian."
         />
       ) : (
         <div className="grid gap-4">
-          {query.data.map((branch) => (
+          {query.data.items.map((branch) => (
             <Link
               key={branch.id}
               to={`/app/branches/${branch.id}`}
