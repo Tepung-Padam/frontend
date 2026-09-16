@@ -129,6 +129,16 @@ export interface CreditApplication {
   documents: CreditDocument[];
 }
 
+export interface OwnSummary {
+  customer_ref: string;
+  persona: string;
+  accounts: Account[];
+  behavior: Behavior | null;
+  behavior_status: string;
+  data_source_type: DataSourceType;
+  disclaimer: string;
+}
+
 export interface InboxMessage {
   id: string;
   customer_id: string;

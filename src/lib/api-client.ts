@@ -1,4 +1,4 @@
-import type { ActiveModel, AppUser, AtRiskCustomer, Behavior, Branch, BranchAvailability, BranchDetail, Booking, Campaign, CheckInResponse, CorporateSummary, CreditApplication, Customer, CustomerSummary, InboxEvent, InboxMessage, LoginResponse, MerchantRetention, Paginated, Recommendation, RelationshipScore, RetentionSummary, Transaction, ChurnPrediction } from "@/types/domain";
+import type { ActionType, ActiveModel, AppUser, AtRiskCustomer, Behavior, Branch, BranchAvailability, BranchDetail, Booking, Campaign, CheckInResponse, CorporateSummary, CreditApplication, Customer, CustomerSummary, InboxEvent, InboxMessage, LoginResponse, MerchantRetention, Paginated, Recommendation, RelationshipScore, RetentionSummary, Transaction, ChurnPrediction, OwnSummary } from "@/types/domain";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:8000";
 
@@ -77,8 +77,34 @@ export const api = {
   churn: (id: string) => request<ChurnPrediction>(`/api/v1/customers/${id}/churn`),
   relationshipScore: (id: string) => request<RelationshipScore>(`/api/v1/customers/${id}/relationship-score`),
   recommendations: (id: string) => request<Recommendation[]>(`/api/v1/customers/${id}/recommendations`),
-  atRisk: () => request<AtRiskCustomer[]>("/api/v1/retention/at-risk"),
+  atRisk: () => request<Paginated<AtRiskCustomer>>("/api/v1/retention/at-risk"), 
   retentionSummary: () => request<RetentionSummary>("/api/v1/analytics/retention-summary"),
   activeModel: () => request<ActiveModel>("/api/v1/ml/models/active"),
-  campaigns: () => request<Campaign[]>("/api/v1/campaigns"),
+  campaigns: () => request<Paginated<Campaign>>("/api/v1/campaigns"),
+  
+  // Endpoint milik Consumer
+  meSummary: () => request<OwnSummary>("/api/v1/me/summary"),
+  meTransactions: (page = 1, pageSize = 20) => request<Paginated<Transaction>>(`/api/v1/me/transactions?page=${page}&page_size=${pageSize}`),
+
+  // --- Fitur Staff: Campaign & Messaging ---
+  createCampaign: (payload: { name: string; campaign_type: ActionType; description: string }) => 
+    request<Campaign>("/api/v1/campaigns", { 
+      method: "POST", 
+      body: JSON.stringify(payload),
+      headers: { "Idempotency-Key": crypto.randomUUID() }
+    }),
+    
+  addCampaignTargets: (campaignId: string, targets: { customer_id: string; recommendation_id?: string }[]) => 
+    request<any[]>(`/api/v1/campaigns/${campaignId}/targets`, { 
+      method: "POST", 
+      body: JSON.stringify({ targets }),
+      headers: { "Idempotency-Key": crypto.randomUUID() }
+    }),
+    
+  deliverMessage: (customerId: string, payload: { campaign_target_id: string; selection_method: string; title: string; body: string }) => 
+    request<InboxMessage>(`/api/v1/customers/${customerId}/messages`, { 
+      method: "POST", 
+      body: JSON.stringify(payload),
+      headers: { "Idempotency-Key": crypto.randomUUID() }
+    }),
 };
