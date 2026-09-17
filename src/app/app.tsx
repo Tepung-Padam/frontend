@@ -23,7 +23,7 @@ import { ModelPage } from "@/features/analytics/model-page";
 import { CampaignsPage } from "@/features/analytics/campaigns-page";
 import { StaffCreditPage } from "@/features/credit/staff-credit-page";
 import { CreditDetailPage } from "@/features/credit/credit-detail-page";
-import { CorporateAdvisoryPage, CorporateInvoicesPage, CorporateNotificationsPage } from "@/features/corporate/corporate-pages";
+import { CorporateAdvisoryPage, CorporateHomePage, CorporateInvoicesPage, CorporateNotificationsPage } from "@/features/corporate/corporate-pages";
 
 export function App() {
   return (
@@ -63,7 +63,7 @@ export function App() {
 
       <Route element={<RequireAuth roles={["CORPORATE"]} />}>
         <Route element={<BusinessLayout />}>
-          <Route path="/corporate" element={<BusinessHomePage />} />
+          <Route path="/corporate" element={<CorporateHomePage />} />
           <Route path="/corporate/advisory" element={<CorporateAdvisoryPage />} />
           <Route path="/corporate/notifications" element={<CorporateNotificationsPage />} />
           <Route path="/corporate/invoices" element={<CorporateInvoicesPage />} />
@@ -73,7 +73,7 @@ export function App() {
             element={<CreditDetailPage />}
           />
           <Route path="/corporate/profile" element={<ProfilePage />} />
-          <Route path="/corporate/*" element={<BusinessHomePage />} />
+          <Route path="/corporate/*" element={<CorporateHomePage />} />
         </Route>
       </Route>
 

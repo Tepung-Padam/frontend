@@ -1,6 +1,7 @@
 import type {
   ActionType,
   ActiveModel,
+  AdvisoryRead,
   AppUser,
   AtRiskCustomer,
   Behavior,
@@ -11,21 +12,36 @@ import type {
   Campaign,
   CheckInResponse,
   CorporateSummary,
+  CorporateActionRead,
+  CorporateActivityList,
+  CorporateHomeRead,
+  CorporateIntent,
+  CashflowCategory,
+  CashflowDirection,
+  CashflowItemList,
+  CashflowItemStatus,
   CreditApplication,
   Customer,
   CustomerSummary,
+  EngagementScoreRead,
+  ForecastRead,
   InboxEvent,
   InboxMessage,
   LoginResponse,
   MerchantRetention,
+  NavigatorRead,
   OwnSummary,
   Paginated,
   ChurnPrediction,
   Recommendation,
   RelationshipScore,
   RetentionSummary,
+  ScenarioRead,
   Transaction,
   TopDrivers,
+  WizardAnswerValue,
+  WizardResultRead,
+  WizardStepRead,
 } from "@/types/domain";
 
 const API_BASE_URL =
@@ -245,6 +261,91 @@ export const api = {
   merchantSummary: () => request<MerchantRetention>("/api/v1/me/merchant-summary"),
   corporateSummary: () => request<CorporateSummary>("/api/v1/me/company-summary"),
 
+  // ── Corporate Advisor ────────────────────────────────────────────────────
+  corporateHome: (asOfDate: string) =>
+    request<CorporateHomeRead>(`/api/v1/client/corporate/advisory/home?as_of_date=${asOfDate}`),
+  corporateForecast: (asOfDate: string, horizonDays = 30) =>
+    request<ForecastRead>(
+      `/api/v1/client/corporate/cash-flow/forecast?as_of_date=${asOfDate}&horizon_days=${horizonDays}`,
+    ),
+  corporateAdvisories: (asOfDate: string) =>
+    request<AdvisoryRead[]>(`/api/v1/client/corporate/advisories?as_of_date=${asOfDate}`),
+  corporateNavigate: (payload: { as_of_date: string; horizon_days?: number; intent: CorporateIntent }) =>
+    request<NavigatorRead>("/api/v1/client/corporate/navigator/analyze", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  corporateWizardStart: (payload: { as_of_date: string; horizon_days?: number; intent: CorporateIntent }) =>
+    request<WizardStepRead>("/api/v1/client/corporate/advisory/wizard/start", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  corporateWizardNext: (payload: {
+    as_of_date: string;
+    horizon_days?: number;
+    intent: CorporateIntent;
+    answers: WizardAnswerValue[];
+  }) =>
+    request<WizardStepRead>("/api/v1/client/corporate/advisory/wizard/next", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  corporateWizardResult: (payload: {
+    as_of_date: string;
+    horizon_days?: number;
+    intent: CorporateIntent;
+    answers: WizardAnswerValue[];
+  }) =>
+    request<WizardResultRead>("/api/v1/client/corporate/advisory/wizard/result", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  corporateScenario: (payload: {
+    as_of_date: string;
+    horizon_days?: number;
+    shifts?: { reference: string; days: number }[];
+    residual_inflow_factor?: string;
+  }) =>
+    request<ScenarioRead>("/api/v1/client/corporate/cash-flow/scenarios", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  corporateAdvisoryAction: (
+    advisoryId: string,
+    action: string,
+    idempotencyKey = crypto.randomUUID(),
+  ) =>
+    request<CorporateActionRead>(`/api/v1/client/corporate/advisories/${advisoryId}/actions`, {
+      method: "POST",
+      headers: { "Idempotency-Key": idempotencyKey },
+      body: JSON.stringify({ action }),
+    }),
+  corporateCashflowItems: (params: {
+    as_of_date: string;
+    direction?: CashflowDirection;
+    category?: CashflowCategory[];
+    due_within_days?: number;
+    status?: CashflowItemStatus;
+    sort?: "DUE_DATE" | "AMOUNT";
+    page?: number;
+    page_size?: number;
+  }) => {
+    const query = new URLSearchParams();
+    query.set("as_of_date", params.as_of_date);
+    if (params.direction) query.set("direction", params.direction);
+    for (const category of params.category ?? []) query.append("category", category);
+    if (params.due_within_days != null) query.set("due_within_days", String(params.due_within_days));
+    if (params.status) query.set("status", params.status);
+    if (params.sort) query.set("sort", params.sort);
+    query.set("page", String(params.page ?? 1));
+    query.set("page_size", String(params.page_size ?? 20));
+    return request<CashflowItemList>(`/api/v1/client/corporate/cash-flow/items?${query.toString()}`);
+  },
+  corporateActivity: (page = 1, pageSize = 20) =>
+    request<CorporateActivityList>(
+      `/api/v1/client/corporate/advisory/activity?page=${page}&page_size=${pageSize}`,
+    ),
+
   // ── ML / Analytics ────────────────────────────────────────────────────────
   behavior: (id: string) => request<Behavior>(`/api/v1/customers/${id}/behavior`),
   churn: (id: string) => request<ChurnPrediction>(`/api/v1/customers/${id}/churn`),
@@ -265,6 +366,8 @@ export const api = {
 
   // ── Consumer self-service ─────────────────────────────────────────────────
   meSummary: () => request<OwnSummary>("/api/v1/me/summary"),
+  engagementScore: (asOfDate: string) =>
+    request<EngagementScoreRead>(`/api/v1/consumer/engagement-score?as_of_date=${asOfDate}`),
   meTransactions: (page = 1, pageSize = 20) =>
     request<Paginated<Transaction>>(
       `/api/v1/me/transactions?page=${page}&page_size=${pageSize}`,

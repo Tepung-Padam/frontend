@@ -11,6 +11,13 @@ export function formatDate(value: string | null | undefined): string {
   return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" }).format(date);
 }
 
+/** Corporate advisor endpoints require a completed UTC day as as_of_date. */
+export function yesterdayUtcDate(): string {
+  const now = new Date();
+  const yesterday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
+  return yesterday.toISOString().slice(0, 10);
+}
+
 export function localDateInputValue(date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jakarta",

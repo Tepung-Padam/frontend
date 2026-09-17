@@ -287,6 +287,53 @@ export interface MerchantSelfSummary {
   disclaimer: string;
 }
 export interface CorporateSummary { customer_id: string; customer_ref: string; company_ref: string; industry_category: string | null; business_size: string | null; relationship_start_date: string | null; as_of_date: string; accounts_summary: { total_accounts: number; primary_currency: string; total_balance: string | null }; cashflow_totals_30d: { incoming_30d: string; outgoing_30d: string; net_cashflow_30d: string }; active_simulated_credit_requests_count: number; score_status: { status: string; reason_code: string; message: string }; disclaimer: string; }
+
+// ── Corporate Advisor (forecast, navigator, wizard, cash-flow items) ───────────
+export type CorporateIntent = "MANAGE_OPERATIONS" | "GROW" | "EXPORT";
+export type AdvisoryAction = "LEARN_MORE" | "CONTACT_RM" | "REQUEST_RECEIVABLE_FINANCING" | "REQUEST_PAYMENT_SCHEDULING" | "REQUEST_LIQUIDITY_REVIEW";
+export type CashflowCategory = "RECEIVABLE" | "EXPORT_RECEIVABLE" | "PAYABLE" | "PAYROLL" | "OPERATING" | "CAPEX";
+export type CashflowDirection = "CREDIT" | "DEBIT";
+export type CashflowItemStatus = "PENDING" | "SETTLED";
+export type WizardAnswerType = "BOOLEAN" | "DECIMAL" | "SINGLE_CHOICE" | "TEXT";
+export type WizardStepStatus = "QUESTION" | "COMPLETED" | "INSUFFICIENT_DATA";
+
+export interface ProductMatch { code: string; name: string; source_url: string; why_this_product: string; rule_version: string; eligibility: string; }
+export interface AdvisoryDriver { [key: string]: unknown; }
+export interface AdvisoryRead { id: string; run_id: string; kind: string; intent: CorporateIntent; event_date: string | null; amount: string | null; rule_version: string; explanation: string; drivers: AdvisoryDriver[]; recommended_action: string; product_match: ProductMatch | null; next_actions: AdvisoryAction[]; is_simulation: boolean; }
+export interface ForecastPoint { date: string; known_inflow: string; known_outflow: string; predicted_inflow: string; predicted_outflow: string; projected_balance: string; lower_balance: string; upper_balance: string; risk_status: "BELOW_THRESHOLD" | "ADEQUATE"; evidence: Record<string, unknown>[]; }
+export interface ForecastRead { run_id: string; customer_id: string; as_of_date: string; horizon_days: number; currency: "IDR"; opening_balance: string; threshold: string; method_version: string; feature_version: string; input_checksum: string; uncertainty_method: string; assumptions: string[]; points: ForecastPoint[]; advisories: AdvisoryRead[]; is_simulation: boolean; disclaimer: string; }
+export interface ScenarioRead { baseline: ForecastRead; scenario: ForecastRead; baseline_minimum: string; scenario_minimum: string; is_simulation: boolean; }
+export interface NavigatorRead { intent: CorporateIntent; status: "AVAILABLE" | "INSUFFICIENT_DATA"; reason: string | null; recommendation: AdvisoryRead | null; rule_version: string; }
+
+export interface WizardQuestionRead { question_id: string; pillar: CorporateIntent; prompt: string; answer_type: WizardAnswerType; evidence_needed: string; options: string[]; unit: string | null; dependencies: string[]; selection_reason: string; }
+export interface WizardProgress { answered: number; minimum_questions: number; maximum_questions: number; }
+export interface WizardStepRead { status: WizardStepStatus; intent: CorporateIntent; question: WizardQuestionRead | null; progress: WizardProgress; completion_reason: string | null; rule_version: string; evidence_schema_version: string; is_simulation: boolean; }
+export interface WizardAnswerValue { question_id: string; value: boolean | string | number; }
+export interface WizardRecommendationRead { title: string; explanation: string; drivers: AdvisoryDriver[]; recommended_action: string; product_match: ProductMatch | null; next_actions: AdvisoryAction[]; }
+export interface WizardResultRead { status: "AVAILABLE" | "INSUFFICIENT_DATA"; intent: CorporateIntent; recommendation: WizardRecommendationRead | null; reason: string | null; answered_question_ids: string[]; rule_version: string; selector_rule_version: string; evidence_schema_version: string; forecast_method_version: string; is_simulation: boolean; disclaimer: string; }
+
+export interface CorporateHomeRead { company_ref: string; current_cash: string; projected_closing_cash: string; minimum_projected_cash: string; receivables: string; payables: string; runway_days: number | null; runway_status: "AT_RISK" | "ADEQUATE_WITHIN_HORIZON"; pending_items_count: number; urgent_items_count: number; cashflow_volume_12m: string | null; cashflow_volume_12m_status: "AVAILABLE" | "INSUFFICIENT_HISTORY"; forecast: ForecastRead; intents: CorporateIntent[]; }
+export interface CashflowItemRead { id: string; reference: string; counterparty_ref: string; category: CashflowCategory; direction: CashflowDirection; amount: string; currency: "IDR"; known_on: string; due_date: string; days_to_due: number; status: CashflowItemStatus; paid_on: string | null; is_simulation: boolean; }
+export interface CashflowTotals { receivable_total: string; payable_total: string; pending_count: number; urgent_count: number; }
+export interface CashflowItemList { as_of_date: string; currency: "IDR"; items: CashflowItemRead[]; totals: CashflowTotals; total: number; page: number; page_size: number; is_simulation: boolean; disclaimer: string; }
+export interface CorporateActivityItem { id: string; advisory_id: string; action: string; occurred_at: string; }
+export interface CorporateActivityList { items: CorporateActivityItem[]; total: number; page: number; page_size: number; }
+export interface CorporateActionRead { id: string; advisory_id: string; action: string; status: "RECORDED"; delivery: string; }
+
+// ── Consumer engagement score (backend-computed, rule-based) ───────────────────
+export interface EngagementScoreDriver { observed: number; points_per_action: number; cap: number; points: number; }
+export interface EngagementScoreData {
+  score: number;
+  max_score: number;
+  tier: "LOW" | "MEDIUM" | "HIGH";
+  as_of_date: string;
+  score_drivers: Record<string, EngagementScoreDriver>;
+  available_actions: { action: string; points: number; remaining_cap: number }[];
+  version: string;
+  not_creditworthiness: true;
+  points_are: string;
+}
+export interface EngagementScoreRead { data: EngagementScoreData; source: "RULE_BASED"; version: string; disclaimer: string; }
 export interface ActiveModel { id: string | null; name: string; type: "LOGISTIC_REGRESSION" | "XGBOOST"; version: string | null; feature_schema_version: string | null; training_dataset_version: string | null; training_timestamp: string | null; thresholds: { medium: number; high: number }; metrics: { accuracy?: number | null; threshold?: number | null; sample_count?: number | null; roc_auc: number | null; pr_auc: number | null; precision_at_10_percent: number | null; recall_at_10_percent: number | null; lift_at_10_percent: number | null }; is_available: boolean; disclosure: string; }
 export interface Campaign { id: string; name: string; campaign_type: ActionType; status: CampaignStatus; description: string; is_simulation: boolean; created_at: string; updated_at: string; }
 export interface CampaignTarget { id: string; campaign_id: string; customer_id: string; recommendation_id: string | null; assigned_at: string; }
