@@ -12,6 +12,7 @@ import { BookingsPage } from "@/features/branches/bookings-page";
 import { BookingDetailPage } from "@/features/branches/booking-detail-page";
 import { MessageDetailPage } from "@/features/inbox/message-detail-page";
 import { ProfilePage } from "@/features/profile/profile-page";
+import { OffersPage } from "@/features/consumer/offers-page";
 import { WorkspaceHomePage } from "@/features/analytics/workspace-home-page";
 import { RetentionPage } from "@/features/retention/retention-page";
 import { CustomerDetailPage } from "@/features/retention/customer-detail-page";
@@ -22,6 +23,7 @@ import { ModelPage } from "@/features/analytics/model-page";
 import { CampaignsPage } from "@/features/analytics/campaigns-page";
 import { StaffCreditPage } from "@/features/credit/staff-credit-page";
 import { CreditDetailPage } from "@/features/credit/credit-detail-page";
+import { CorporateAdvisoryPage, CorporateInvoicesPage, CorporateNotificationsPage } from "@/features/corporate/corporate-pages";
 
 export function App() {
   return (
@@ -33,6 +35,7 @@ export function App() {
           <Route path="/app" element={<Home />} />
           <Route path="/app/activity" element={<ActivityPage />} />
           <Route path="/app/inbox" element={<InboxPage />} />
+          <Route path="/app/offers" element={<OffersPage />} />
           <Route path="/app/inbox/:id" element={<MessageDetailPage />} />
           <Route path="/app/financing" element={<CreditPage />} />
           <Route path="/app/financing/:id" element={<CreditDetailPage />} />
@@ -61,6 +64,9 @@ export function App() {
       <Route element={<RequireAuth roles={["CORPORATE"]} />}>
         <Route element={<BusinessLayout />}>
           <Route path="/corporate" element={<BusinessHomePage />} />
+          <Route path="/corporate/advisory" element={<CorporateAdvisoryPage />} />
+          <Route path="/corporate/notifications" element={<CorporateNotificationsPage />} />
+          <Route path="/corporate/invoices" element={<CorporateInvoicesPage />} />
           <Route path="/corporate/financing" element={<CreditPage />} />
           <Route
             path="/corporate/financing/:id"
@@ -86,10 +92,22 @@ export function App() {
           <Route path="/staff/*" element={<RetentionPage />} />
 
           <Route path="/rm" element={<WorkspaceHomePage />} />
-          <Route path="/rm/*" element={<RetentionPage />} />
+          <Route path="/rm/at-risk" element={<RetentionPage />} />
+          <Route path="/rm/at-risk/:id" element={<CustomerDetailPage />} />
+          <Route path="/rm/campaigns" element={<CampaignsPage />} />
+          <Route path="/rm/models" element={<ModelPage />} />
+          <Route path="/rm/applications" element={<StaffCreditPage />} />
+          <Route path="/rm/applications/:id" element={<CreditDetailPage />} />
+          <Route path="/rm/*" element={<Navigate to="/rm" replace />} />
 
           <Route path="/admin" element={<AdminPage />} />
-          <Route path="/admin/*" element={<AdminPage />} />
+          <Route path="/admin/at-risk" element={<RetentionPage />} />
+          <Route path="/admin/at-risk/:id" element={<CustomerDetailPage />} />
+          <Route path="/admin/campaigns" element={<CampaignsPage />} />
+          <Route path="/admin/models" element={<ModelPage />} />
+          <Route path="/admin/applications" element={<StaffCreditPage />} />
+          <Route path="/admin/applications/:id" element={<CreditDetailPage />} />
+          <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
         </Route>
       </Route>
 

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { ErrorState } from "@/components/feedback/error-state";
+import { codeLabel } from "@/lib/format";
 
 export function CampaignsPage() {
   const queryClient = useQueryClient();
@@ -99,7 +100,7 @@ export function CampaignsPage() {
         </Button>
       </div>
 
-      {/* Inline result feedback — menggantikan alert() */}
+      {/* Inline result feedback menggantikan alert() */}
       {sendResult && (
         <div
           className={`flex items-start gap-3 rounded-2xl p-4 ${
@@ -241,12 +242,12 @@ export function CampaignsPage() {
                           : "warning"
                   }
                 >
-                  {campaign.status}
+                  {codeLabel(campaign.status)}
                 </Badge>
               </div>
               <p className="mt-4 text-xs font-bold uppercase tracking-wider text-slate-400">
-                {campaign.is_simulation ? "Simulation" : "Production"} ·{" "}
-                {campaign.campaign_type.replaceAll("_", " ")}
+                {campaign.is_simulation ? "Simulasi" : "Produksi"} |{" "}
+                {codeLabel(campaign.campaign_type)}
               </p>
             </Card>
           ))}

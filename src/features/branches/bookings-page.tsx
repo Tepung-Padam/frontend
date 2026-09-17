@@ -1,9 +1,8 @@
 import { Link } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, MapPin } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { CalendarDays, ChevronRight, MapPin } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { formatDate } from "@/lib/format";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/feedback/empty-state";
@@ -43,10 +42,9 @@ function getStatusLabel(status: BookingStatus): string {
 }
 
 export function BookingsPage() {
-  // api.bookings() sudah dinormalisasi ke Paginated<Booking> di api-client
   const query = useQuery({
     queryKey: ["bookings"],
-    queryFn: api.bookings,
+    queryFn: () => api.bookings(),
   });
 
   if (query.isLoading) return <LoadingState />;
@@ -87,7 +85,7 @@ export function BookingsPage() {
           detail="Kunjungi menu Cabang untuk mencari jadwal dan membuat booking."
         />
       ) : (
-        <div className="grid gap-4">
+        <div className="divide-y divide-line border-y border-line">
           {bookings.map((booking) => (
             <BookingCard key={booking.booking_code} booking={booking} />
           ))}
@@ -98,35 +96,8 @@ export function BookingsPage() {
 }
 
 function BookingCard({ booking }: { booking: import("@/types/domain").Booking }) {
-  const client = useQueryClient();
-
-  const checkIn = useMutation({
-    mutationFn: () => api.checkIn(booking.booking_code),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: ["bookings"] });
-      void client.invalidateQueries({ queryKey: ["booking", booking.booking_code] });
-    },
-  });
-
-  const cancel = useMutation({
-    mutationFn: () => api.cancelBooking(booking.booking_code),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: ["bookings"] });
-    },
-  });
-
-  const canCheckIn =
-    !checkIn.isPending &&
-    !cancel.isPending &&
-    ["PENDING", "CONFIRMED"].includes(booking.status);
-
-  const canCancel =
-    !cancel.isPending &&
-    !checkIn.isPending &&
-    ["PENDING", "CONFIRMED"].includes(booking.status);
-
   return (
-    <Card className="p-5">
+    <div className="py-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex gap-3">
           <span className="mt-0.5 rounded-xl bg-orange-50 p-2.5 text-orange-600">
@@ -143,43 +114,7 @@ function BookingCard({ booking }: { booking: import("@/types/domain").Booking })
         <Badge tone={getStatusTone(booking.status)}>{getStatusLabel(booking.status)}</Badge>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-3">
-        <Link to={`/app/bookings/${booking.booking_code}`}>
-          <Button variant="secondary">Detail</Button>
-        </Link>
-
-        {canCheckIn && (
-          <Button disabled={checkIn.isPending} onClick={() => checkIn.mutate()}>
-            {checkIn.isPending ? "Memproses..." : "Check-in"}
-          </Button>
-        )}
-
-        {canCancel && (
-          <Button
-            variant="ghost"
-            disabled={cancel.isPending}
-            onClick={() => cancel.mutate()}
-          >
-            {cancel.isPending ? "Membatalkan..." : "Batalkan"}
-          </Button>
-        )}
-      </div>
-
-      {checkIn.isSuccess && checkIn.data && (
-        <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">
-          {checkIn.data.message}
-        </p>
-      )}
-      {checkIn.isError && (
-        <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
-          Gagal check-in. Slot mungkin sudah melewati batas waktu.
-        </p>
-      )}
-      {cancel.isError && (
-        <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
-          Gagal membatalkan booking.
-        </p>
-      )}
-    </Card>
+      <Link className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-orange-600" to={`/app/bookings/${booking.booking_code}`}>Lihat detail dan tindakan <ChevronRight size={16} /></Link>
+    </div>
   );
 }

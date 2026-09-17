@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { FileClock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { codeLabel, formatCurrency, formatDate } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/feedback/loading-state";
@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Dialog } from "@/components/ui/dialog";
 
 export function CreditPage() {
   const location = useLocation();
@@ -22,6 +23,7 @@ export function CreditPage() {
       : "/app/financing";
 
   const isConsumer = basePath === "/app/financing";
+  const isCorporate = basePath === "/corporate/financing";
 
   const query = useQuery({
     queryKey: ["credit-applications", basePath],
@@ -53,17 +55,18 @@ export function CreditPage() {
 
   return (
     <div className="space-y-6 pt-3">
-      <div className="flex items-start justify-between">
+      <div className={`flex flex-col gap-5 rounded-3xl p-6 sm:flex-row sm:items-end sm:justify-between ${isCorporate ? "bg-[#17343b] text-white" : ""}`}>
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">Financing</p>
-          <h1 className="mt-2 font-display text-3xl font-bold">Progress pengajuan</h1>
-          <p className="mt-2 text-slate-500">Seluruh pengajuan di sini bersifat simulasi, bukan keputusan lending.</p>
+          <p className={`text-xs font-bold uppercase tracking-[0.18em] ${isCorporate ? "text-teal-200" : "text-orange-600"}`}>{isCorporate ? "Corporate financing" : "Financing"}</p>
+          <h1 className="mt-2 font-display text-3xl font-bold">{isCorporate ? "Pengajuan perusahaan" : "Progress pengajuan"}</h1>
+          <p className={`mt-2 ${isCorporate ? "text-slate-300" : "text-slate-500"}`}>{isCorporate ? "Pantau fasilitas, tahap review, dan dokumen perusahaan dalam satu ruang kerja." : "Seluruh pengajuan di sini bersifat simulasi, bukan keputusan lending."}</p>
         </div>
         <Button onClick={() => setIsCreating(!isCreating)} variant={isCreating ? "secondary" : "primary"}>
           {isCreating ? "Batal" : "Ajukan Simulasi"}
         </Button>
       </div>
 
+      <Dialog open={isCreating} title="Pengajuan Simulasi Kredit" onClose={() => setIsCreating(false)}>
       {isCreating && (
         <Card className="p-5 bg-orange-50/50 border-orange-200">
           <h2 className="font-bold text-lg mb-4">Pengajuan Simulasi Kredit</h2>
@@ -112,6 +115,7 @@ export function CreditPage() {
           </div>
         </Card>
       )}
+      </Dialog>
 
       {query.data.items.length === 0 ? (
         <EmptyState title="Belum ada pengajuan" detail="Belum ada pengajuan simulasi yang tercatat untuk akun ini." />
@@ -126,7 +130,7 @@ export function CreditPage() {
                       <FileClock size={21} />
                     </span>
                     <div>
-                      <h2 className="font-bold">{item.product_category.replaceAll("_", " ")}</h2>
+                      <h2 className="font-bold">{codeLabel(item.product_category)}</h2>
                       <p className="mt-1 text-sm text-slate-500">Dibuat {formatDate(item.created_at)}</p>
                     </div>
                   </div>
@@ -138,7 +142,7 @@ export function CreditPage() {
                     {formatCurrency(item.requested_amount, item.currency)}
                   </p>
                   <span className="text-xs font-bold uppercase text-slate-500">
-                    {item.current_stage.replaceAll("_", " ")}
+                    {codeLabel(item.current_stage)}
                   </span>
                 </div>
               </Card>

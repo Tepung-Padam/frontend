@@ -6,8 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { ErrorState } from "@/components/feedback/error-state";
 import { EmptyState } from "@/components/feedback/empty-state";
+import { useSession } from "@/features/auth/use-session";
+import { codeLabel } from "@/lib/format";
 
 export function StaffCreditPage() {
+  const { user } = useSession();
+  const prefix = user?.role === "ADMIN" ? "/admin" : user?.role === "RM" ? "/rm" : "/staff";
   const query = useQuery({
     queryKey: ["staff-credit-applications"],
     queryFn: () => api.staffCreditApplications(),
@@ -38,17 +42,17 @@ export function StaffCreditPage() {
       ) : (
         <div className="grid gap-3">
           {query.data.items.map((item) => (
-            <Link key={item.id} to={`/staff/applications/${item.id}`}>
+            <Link key={item.id} to={`${prefix}/applications/${item.id}`}>
               <Card className="flex items-center justify-between gap-4 p-5">
                 <div>
                   <p className="font-bold">
-                    {item.product_category.replaceAll("_", " ")}
+                    {codeLabel(item.product_category)}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
                     {item.customer_id} · {item.requested_amount} {item.currency}
                   </p>
                 </div>
-                <Badge tone="warning">{item.current_stage}</Badge>
+                <Badge tone="warning">{codeLabel(item.current_stage)}</Badge>
               </Card>
             </Link>
           ))}

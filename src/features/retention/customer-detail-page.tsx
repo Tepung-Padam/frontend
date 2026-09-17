@@ -10,10 +10,14 @@ import { ErrorState } from "@/components/feedback/error-state";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { Sparkles, Brain, ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
 import type { Recommendation } from "@/types/domain";
+import { useSession } from "@/features/auth/use-session";
+import { codeLabel, formatDate, modelFeatureLabel } from "@/lib/format";
 
 export function CustomerDetailPage() {
   const { id } = useParams();
   const queryClient = useQueryClient();
+  const { user } = useSession();
+  const workspacePrefix = user?.role === "ADMIN" ? "/admin" : user?.role === "RM" ? "/rm" : "/staff";
 
   // FIX: ganti alert() dengan inline state per-rekomendasi
   const [interventionResult, setInterventionResult] = useState<
@@ -44,15 +48,14 @@ export function CustomerDetailPage() {
     enabled: !!id,
   });
 
-  // FIX: api.recommendations() return Recommendation[] bukan Paginated<Recommendation>
   const recommendationsQuery = useQuery({
     queryKey: ["customer-recommendations", id],
     queryFn: () => api.recommendations(id!),
     enabled: !!id,
   });
 
-  // FIX: api.generateRecommendation() tidak ada — hapus, ganti refetch recommendations
-  const generateRecMutation = useMutation({
+  // Endpoint hanya menyediakan pembacaan ulang rekomendasi.
+  const refreshRecommendations = useMutation({
     mutationFn: () => api.recommendations(id!),
     onSuccess: () => {
       void queryClient.invalidateQueries({
@@ -69,16 +72,16 @@ export function CustomerDetailPage() {
     }));
     try {
       const campaign = await api.createCampaign({
-        name: `Intervention: ${rec.action_type}`,
+        name: `Intervensi: ${codeLabel(rec.action_type)}`,
         campaign_type: rec.action_type,
-        description: `AI-recommended intervention for ${customerRef}`,
+        description: `Tindakan untuk nasabah ${customerRef} berdasarkan hasil model`,
       });
       const targets = await api.addCampaignTargets(campaign.id, [
         { customer_id: rec.customer_id, recommendation_id: rec.id },
       ]);
       await api.deliverMessage(rec.customer_id, {
         campaign_target_id: targets[0].id,
-        selection_method: "AI_RECOMMENDATION",
+        selection_method: "RULE_RANKER_V1",
         title: "Penawaran Khusus Untuk Anda",
         body:
           rec.description ||
@@ -114,20 +117,17 @@ export function CustomerDetailPage() {
   const churn = churnQuery.data;
   const score = scoreQuery.data;
   // FIX: recommendations return Recommendation[], bukan Paginated
-  const recs: Recommendation[] = recommendationsQuery.data ?? [];
+  const recs: Recommendation[] = recommendationsQuery.data?.items ?? [];
 
   return (
     <div className="space-y-6 pt-3">
       <div>
         <Link
-          to="/staff/at-risk"
+          to={`${workspacePrefix}/at-risk`}
           className="flex items-center gap-2 text-sm text-slate-500 hover:text-orange-600 transition"
         >
           <ArrowLeft size={16} /> Kembali ke daftar
         </Link>
-        <p className="mt-4 text-xs font-bold uppercase tracking-[0.18em] text-orange-600">
-          AI Intelligence
-        </p>
         <h1 className="mt-2 font-display text-3xl font-bold flex items-center gap-3">
           Customer Insights <Brain className="text-orange-500" />
         </h1>
@@ -142,7 +142,7 @@ export function CustomerDetailPage() {
           <div className="mt-4">
             <p className="text-xl font-bold">{customerData?.customer_ref}</p>
             <p className="mt-1 text-sm text-slate-500">
-              {customerData?.customer_type} · {customerData?.state}
+              {codeLabel(customerData?.customer_type)} | {codeLabel(customerData?.state)}
             </p>
           </div>
           <div className="mt-6 pt-4 border-t border-line">
@@ -166,7 +166,7 @@ export function CustomerDetailPage() {
               <>
                 <div>
                   <p className="font-display text-3xl font-bold">
-                    {churn ? Math.round(churn.probability * 100) : 0}%
+                    {churn ? `${Math.round(churn.probability * 100)}%` : "Belum tersedia"}
                   </p>
                   <p className="mt-1 text-sm text-slate-500">Churn Probability</p>
                 </div>
@@ -180,7 +180,7 @@ export function CustomerDetailPage() {
                           : "success"
                     }
                   >
-                    {churn.risk_level} RISK
+                    Risiko {codeLabel(churn.risk_level)}
                   </Badge>
                 )}
               </>
@@ -279,7 +279,7 @@ export function CustomerDetailPage() {
                   className="flex items-center justify-between p-3 rounded-lg border border-line bg-slate-50/50"
                 >
                   <span className="text-sm font-medium text-slate-600">
-                    {driver.message || driver.feature}
+                    {modelFeatureLabel(driver.feature)}
                   </span>
                   <span
                     className={`font-mono text-sm font-bold ${
@@ -307,12 +307,12 @@ export function CustomerDetailPage() {
           </div>
           {/* FIX: mutationFn sekarang refetch recommendations, bukan endpoint yang tidak ada */}
           <Button
-            disabled={generateRecMutation.isPending}
-            onClick={() => generateRecMutation.mutate()}
+            disabled={refreshRecommendations.isPending}
+            onClick={() => refreshRecommendations.mutate()}
             className="flex items-center gap-2"
           >
             <Sparkles size={16} />
-            {generateRecMutation.isPending ? "Generating..." : "Generate Insights"}
+            {refreshRecommendations.isPending ? "Memuat..." : "Perbarui insight"}
           </Button>
         </div>
 
@@ -327,7 +327,7 @@ export function CustomerDetailPage() {
         ) : recs.length === 0 ? (
           <EmptyState
             title="Tidak ada rekomendasi"
-            detail="Klik generate insights untuk mendapatkan rekomendasi dari AI."
+            detail="Backend belum menyediakan rekomendasi aktif untuk nasabah ini."
           />
         ) : (
           <div className="divide-y divide-line">
@@ -335,14 +335,14 @@ export function CustomerDetailPage() {
               <div key={rec.id} className="p-5">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="text-lg font-bold">{rec.action_type}</h3>
+                    <h3 className="text-lg font-bold">{codeLabel(rec.action_type)}</h3>
                     <p className="mt-2 text-sm text-slate-600">
                       {rec.reason || rec.description}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge tone={rec.status === "ACTIVE" ? "success" : "neutral"}>
-                      {rec.status}
+                      {codeLabel(rec.status)}
                     </Badge>
                     <Button
                       variant="secondary"
@@ -380,7 +380,7 @@ export function CustomerDetailPage() {
                   </p>
                   <p>
                     <strong>Created:</strong>{" "}
-                    {new Date(rec.created_at).toLocaleString()}
+                    {formatDate(rec.created_at)}
                   </p>
                 </div>
               </div>

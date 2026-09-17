@@ -5,14 +5,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#17212b",
-        paper: "#f8f6f2",
-        orange: { 500: "#ec7a45", 600: "#d95d2e" },
-        teal: { 500: "#287c78", 600: "#1f625e" },
-        line: "#e7e1d8",
+        ink: "#17242b",
+        paper: "#f6f5f1",
+        orange: { 50: "#fff6f0", 100: "#ffeadc", 500: "#e87532", 600: "#c95b21", 700: "#a84618" },
+        teal: { 50: "#edf8f6", 100: "#d6efeb", 500: "#167b76", 600: "#116560", 700: "#0e504d" },
+        line: "#e3e2dc",
       },
       fontFamily: { sans: ["DM Sans", "ui-sans-serif", "sans-serif"] },
-      boxShadow: { soft: "0 18px 50px rgba(30, 37, 44, 0.08)" },
+      borderRadius: { "2xl": "1rem", "3xl": "1.35rem" },
+      boxShadow: { soft: "0 1px 2px rgba(23, 36, 43, 0.04), 0 10px 30px rgba(23, 36, 43, 0.05)" },
     },
   },
   plugins: [],

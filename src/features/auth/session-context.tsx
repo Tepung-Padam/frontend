@@ -36,6 +36,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsLoading(false));
   }, []);
 
+  useEffect(() => {
+    const clearSession = () => setUser(null);
+    window.addEventListener("retention:unauthorized", clearSession);
+    return () => window.removeEventListener("retention:unauthorized", clearSession);
+  }, []);
+
   async function login(username: string, password: string) {
     setIsLoading(true);
     try {

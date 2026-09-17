@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { CalendarDays, CheckCircle2, Clock3, MapPin } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronRight, Clock3, LocateFixed, MapPin } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api-client";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { ErrorState } from "@/components/feedback/error-state";
 import { EmptyState } from "@/components/feedback/empty-state";
+import { localDateInputValue } from "@/lib/format";
 
 export function BranchesPage() {
   const { id } = useParams();
@@ -17,20 +18,21 @@ export function BranchesPage() {
   return id ? <BranchDetailPage id={id} /> : <BranchListPage />;
 }
 
-/* -------------------------------------------------------------------------- */
 /* Branch list                                                                */
-/* -------------------------------------------------------------------------- */
 
 function BranchListPage() {
   const [city, setCity] = useState("");
   const [nearestEnabled, setNearestEnabled] = useState(false);
   const [nearestBranch, setNearestBranch] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationState, setLocationState] = useState<"idle" | "locating" | "denied" | "unavailable">("idle");
 
   // Handle geolocation for nearest branch
   const findNearestBranch = () => {
     if (!navigator.geolocation) {
+      setLocationState("unavailable");
       return;
     }
+    setLocationState("locating");
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setNearestBranch({
@@ -38,10 +40,12 @@ function BranchListPage() {
           longitude: position.coords.longitude,
         });
         setNearestEnabled(true);
+        setLocationState("idle");
       },
       () => {
         // Permission denied - fallback to city search
         setNearestEnabled(false);
+        setLocationState("denied");
       },
       { enableHighAccuracy: false, timeout: 10000 }
     );
@@ -122,9 +126,9 @@ function BranchListPage() {
             />
           </div>
 
-          <Button variant="secondary" onClick={() => { findNearestBranch(); void query.refetch(); }}>
-            <MapPin size={16} className="mr-2" />
-            Terdekat
+          <Button variant="secondary" onClick={findNearestBranch} disabled={locationState === "locating"}>
+            <LocateFixed size={16} />
+            {locationState === "locating" ? "Mencari lokasi..." : "Gunakan lokasi saya"}
           </Button>
 
           <Button onClick={() => void query.refetch()}>
@@ -137,6 +141,7 @@ function BranchListPage() {
             Menampilkan cabang dalam radius 10km dari lokasi Anda.
           </p>
         )}
+        {(locationState === "denied" || locationState === "unavailable") && <p className="mt-3 text-xs text-amber-700">Lokasi tidak dapat digunakan. Anda tetap bisa mencari cabang berdasarkan kota.</p>}
       </Card>
 
       {(!query.data.items || query.data.items.length === 0) ? (
@@ -168,15 +173,11 @@ function BranchListPage() {
                         {branch.address}, {branch.city}
                       </p>
 
-                      <p className="mt-2 text-xs text-slate-500">
-                        {branch.branch_code} · {branch.timezone}
-                      </p>
+                      {branch.distance_km != null && <p className="mt-2 text-xs font-semibold text-teal-700">{branch.distance_km.toLocaleString("id-ID", { maximumFractionDigits: 1 })} km dari lokasi Anda</p>}
                     </div>
                   </div>
 
-                  <span className="hidden text-sm font-bold text-orange-600 sm:block">
-                    Lihat →
-                  </span>
+                  <ChevronRight className="shrink-0 text-slate-300 transition group-hover:translate-x-0.5" size={19} />
                 </div>
               </Card>
             </Link>
@@ -187,16 +188,12 @@ function BranchListPage() {
   );
 }
 
-/* -------------------------------------------------------------------------- */
 /* Branch detail                                                              */
-/* -------------------------------------------------------------------------- */
 
 function BranchDetailPage({ id }: { id: string }) {
   const navigate = useNavigate();
 
-  const [date, setDate] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
+  const [date, setDate] = useState(localDateInputValue);
 
   const [selectedSlot, setSelectedSlot] = useState<{
     start_time: string;
@@ -255,7 +252,7 @@ function BranchDetailPage({ id }: { id: string }) {
         ← Kembali ke daftar cabang
       </Link>
 
-      {/* Branch information */}
+      <div className="flex items-center gap-2 text-xs font-semibold text-slate-400"><span className="text-orange-600">1 Cabang</span><span aria-hidden="true">›</span><span>2 Jadwal</span><span aria-hidden="true">›</span><span>3 Konfirmasi</span></div>
       <Card className="overflow-hidden">
         <div className="p-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
@@ -298,7 +295,7 @@ function BranchDetailPage({ id }: { id: string }) {
                   className="flex items-center justify-between rounded-xl bg-paper px-4 py-3"
                 >
                   <span className="text-sm font-medium">
-                    Hari {hours.day_of_week}
+                    {['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'][hours.day_of_week] ?? `Hari ${hours.day_of_week}`}
                   </span>
 
                   <span className="text-sm text-slate-600">
@@ -336,7 +333,7 @@ function BranchDetailPage({ id }: { id: string }) {
           <input
             aria-label="Tanggal booking"
             type="date"
-            min={new Date().toISOString().slice(0, 10)}
+            min={localDateInputValue()}
             className="min-h-11 rounded-xl border border-line px-3 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
             value={date}
             onChange={(event) => {

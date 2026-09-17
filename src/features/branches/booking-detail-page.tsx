@@ -289,7 +289,7 @@ export function BookingDetailPage() {
         </>
       )}
 
-      {/* Done state — navigasi ke daftar */}
+      {/* Navigasi untuk status selesai */}
       {isDone && (
         <div className="flex gap-3">
           <Button variant="secondary" onClick={() => navigate("/app/bookings")}>

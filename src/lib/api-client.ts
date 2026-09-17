@@ -25,6 +25,7 @@ import type {
   RelationshipScore,
   RetentionSummary,
   Transaction,
+  TopDrivers,
 } from "@/types/domain";
 
 const API_BASE_URL =
@@ -42,8 +43,6 @@ export class ApiError extends Error {
   }
 }
 
-// FIX: FastAPI 422 mengembalikan detail sebagai array of { loc, msg, type }
-// Format menjadi kalimat yang readable, bukan raw JSON.stringify
 function formatDetail(detail: unknown): string {
   if (typeof detail === "string") return detail;
   if (Array.isArray(detail)) {
@@ -73,7 +72,7 @@ async function readResponse<T>(response: Response): Promise<T> {
         ? (payload as Record<string, unknown>)
         : {};
     throw new ApiError(
-      formatDetail(data.detail),
+      typeof data.message === "string" ? data.message : formatDetail(data.detail),
       response.status,
       typeof data.code === "string" ? data.code : "API_ERROR",
     );
@@ -89,6 +88,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
   const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
+  if (response.status === 401) {
+    window.localStorage.removeItem("retention.access_token");
+    window.localStorage.removeItem("retention.user");
+    window.dispatchEvent(new Event("retention:unauthorized"));
+  }
   return readResponse<T>(response);
 }
 
@@ -139,7 +143,6 @@ export const api = {
       `/api/v1/me/credit-applications?page=${page}&page_size=${pageSize}`,
     ),
 
-  // FIX: endpoint create credit application yang hilang
   createCreditApplication: (payload: {
     product_category: string;
     requested_amount: string;
@@ -148,7 +151,11 @@ export const api = {
   }) =>
     request<CreditApplication>("/api/v1/me/credit-applications", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        product_category: payload.product_category,
+        requested_amount: payload.requested_amount,
+        currency: payload.currency,
+      }),
       headers: { "Idempotency-Key": payload.idempotency_key },
     }),
 
@@ -161,7 +168,6 @@ export const api = {
   staffCreditApplicationEvents: (id: string) =>
     request<Paginated<Record<string, unknown>>>(`/api/v1/credit-applications/${id}/events`),
 
-  // FIX: endpoint add credit event yang hilang di api-client sebelumnya
   staffAddCreditEvent: (id: string, payload: CreditEventPayload) =>
     request<Record<string, unknown>>(`/api/v1/credit-applications/${id}/events`, {
       method: "POST",
@@ -194,7 +200,6 @@ export const api = {
     }),
 
   // ── Branches ──────────────────────────────────────────────────────────────
-  // FIX: signature diperluas untuk support lat/lon/radius_km/page_size
   branches: (params: BranchesParams = {}) => {
     const qs = new URLSearchParams();
     if (params.city) qs.set("city", params.city);
@@ -203,19 +208,9 @@ export const api = {
     if (params.radius_km != null) qs.set("radius_km", String(params.radius_km));
     if (params.page_size != null) qs.set("page_size", String(params.page_size));
     const query = qs.toString();
-    // Backend returns Branch[] OR Paginated<Branch> depending on params.
-    // We normalize to always have { items } shape downstream.
-    return request<Branch[] | Paginated<Branch>>(
+    return request<Paginated<Branch>>(
       `/api/v1/branches${query ? `?${query}` : ""}`,
-    ).then((res) => {
-      if (Array.isArray(res)) {
-        return {
-          items: res,
-          pagination: { page: 1, page_size: res.length, total_items: res.length, total_pages: 1 },
-        } as Paginated<Branch>;
-      }
-      return res as Paginated<Branch>;
-    });
+    );
   },
   branch: (id: string) => request<BranchDetail>(`/api/v1/branches/${id}`),
   branchAvailability: (id: string, date: string) =>
@@ -224,13 +219,8 @@ export const api = {
     ),
 
   // ── Bookings ──────────────────────────────────────────────────────────────
-  // FIX: backend returns Booking[] bukan Paginated<Booking>
-  // Normalisasi ke Paginated agar konsisten di semua page
-  bookings: () =>
-    request<Booking[]>("/api/v1/bookings/me").then((res) => ({
-      items: res,
-      pagination: { page: 1, page_size: res.length, total_items: res.length, total_pages: 1 },
-    })),
+  bookings: (page = 1, pageSize = 20) =>
+    request<Paginated<Booking>>(`/api/v1/bookings/me?page=${page}&page_size=${pageSize}`),
   booking: (code: string) =>
     request<Booking>(`/api/v1/bookings/${encodeURIComponent(code)}`),
   createBooking: (payload: {
@@ -260,10 +250,16 @@ export const api = {
   churn: (id: string) => request<ChurnPrediction>(`/api/v1/customers/${id}/churn`),
   relationshipScore: (id: string) =>
     request<RelationshipScore>(`/api/v1/customers/${id}/relationship-score`),
-  recommendations: (id: string) =>
-    request<Recommendation[]>(`/api/v1/customers/${id}/recommendations`),
-  atRisk: () => request<Paginated<AtRiskCustomer>>("/api/v1/retention/at-risk"),
+  recommendations: (id: string, page = 1, pageSize = 20) =>
+    request<Paginated<Recommendation>>(
+      `/api/v1/customers/${id}/recommendations?page=${page}&page_size=${pageSize}`,
+    ),
+  atRisk: (page = 1, pageSize = 100) =>
+    request<Paginated<AtRiskCustomer>>(
+      `/api/v1/retention/at-risk?page=${page}&page_size=${pageSize}`,
+    ),
   retentionSummary: () => request<RetentionSummary>("/api/v1/analytics/retention-summary"),
+  topDrivers: () => request<TopDrivers>("/api/v1/analytics/top-drivers"),
   activeModel: () => request<ActiveModel>("/api/v1/ml/models/active"),
   campaigns: () => request<Paginated<Campaign>>("/api/v1/campaigns"),
 
@@ -300,7 +296,7 @@ export const api = {
     customerId: string,
     payload: {
       campaign_target_id: string;
-      selection_method: string;
+      selection_method: "RULE_RANKER_V1" | "MANUAL_SIMULATION";
       title: string;
       body: string;
     },

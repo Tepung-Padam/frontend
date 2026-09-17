@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/feedback/loading-state";
 import { ErrorState } from "@/components/feedback/error-state";
+import { codeLabel } from "@/lib/format";
 
 export function ModelPage() {
   const query = useQuery({
@@ -23,25 +24,25 @@ export function ModelPage() {
     <div className="max-w-3xl space-y-6">
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">
-          Transparency
+          Model prediksi
         </p>
-        <h1 className="mt-2 font-display text-3xl font-bold">Model & data</h1>
+        <h1 className="mt-2 font-display text-3xl font-bold">Model dan sumber data</h1>
       </div>
       <Card className="p-6">
         <div className="flex items-center justify-between">
           <h2 className="font-bold">{model.name}</h2>
           <Badge tone={model.is_available ? "success" : "warning"}>
-            {model.is_available ? "AVAILABLE" : "UNAVAILABLE"}
+            {model.is_available ? "Siap digunakan" : "Belum tersedia"}
           </Badge>
         </div>
         <dl className="mt-6 grid gap-4 sm:grid-cols-2">
           {[
-            ["Version", model.version],
-            ["Type", model.type],
-            ["Feature schema", model.feature_schema_version],
-            ["Dataset", model.training_dataset_version],
-            ["Medium threshold", String(model.thresholds.medium)],
-            ["High threshold", String(model.thresholds.high)],
+            ["Versi model", model.version],
+            ["Jenis model", codeLabel(model.type)],
+            ["Versi variabel", model.feature_schema_version],
+            ["Versi data pelatihan", model.training_dataset_version],
+            ["Batas risiko menengah", String(model.thresholds.medium)],
+            ["Batas risiko tinggi", String(model.thresholds.high)],
           ].map(([label, value]) => (
             <div key={label}>
               <dt className="text-xs font-bold uppercase tracking-wider text-slate-400">
