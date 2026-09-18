@@ -43,6 +43,9 @@ import type {
   PocketSummary,
   Recommendation,
   RelationshipScore,
+  EvidencePayload,
+  SharedPocket,
+  SharedPocketListItem,
   RetentionSummary,
   ScenarioRead,
   Transaction,
@@ -380,6 +383,18 @@ export const api = {
     request<Paginated<Transaction>>(
       `/api/v1/me/transactions?page=${page}&page_size=${pageSize}`,
     ),
+  sharedPockets: (page = 1, pageSize = 20) =>
+    request<EvidencePayload<{ items: SharedPocketListItem[]; pagination: Paginated<never>["pagination"] }>>(
+      `/api/v1/consumer/shared-pockets?page=${page}&page_size=${pageSize}`,
+    ),
+  sharedPocket: (id: string) =>
+    request<EvidencePayload<SharedPocket>>(`/api/v1/consumer/shared-pockets/${id}`),
+  createSharedPocket: (payload: { name: string; kind: "KPR" | "BILLS" | "CHILD" | "GENERAL"; dual_approval: boolean }) =>
+    request<EvidencePayload<SharedPocket>>("/api/v1/consumer/shared-pockets", { method: "POST", body: JSON.stringify(payload), headers: { "Idempotency-Key": crypto.randomUUID() } }),
+  configurePocketContribution: (id: string, payload: { amount: string; day_of_month: number }) =>
+    request<EvidencePayload<{ id: string; contribution_amount: string; contribution_day: number }>>(`/api/v1/consumer/shared-pockets/${id}/contribution-rule`, { method: "PUT", body: JSON.stringify(payload) }),
+  invitePocketMember: (id: string, customerRef: string) =>
+    request<EvidencePayload<{ id: string; pocket_id: string; status: string; expires_at: string }>>(`/api/v1/consumer/shared-pockets/${id}/invitations`, { method: "POST", body: JSON.stringify({ customer_ref: customerRef }) }),
 
   // ── Staff: Campaign & Messaging ───────────────────────────────────────────
   createCampaign: (payload: {

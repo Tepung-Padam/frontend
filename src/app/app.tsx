@@ -23,9 +23,8 @@ import { ModelPage } from "@/features/analytics/model-page";
 import { CampaignsPage } from "@/features/analytics/campaigns-page";
 import { StaffCreditPage } from "@/features/credit/staff-credit-page";
 import { CreditDetailPage } from "@/features/credit/credit-detail-page";
-import { CorporateAdvisoryPage, CorporateHomePage, CorporateInvoicesPage, CorporateNotificationsPage } from "@/features/corporate/corporate-pages";
-import { PocketsPage } from "@/features/pockets/pockets-page";
-import { PocketDetailPage } from "@/features/pockets/pocket-detail-page";
+import { CorporateAdvisoryPage, CorporateInvoicesPage, CorporateNotificationsPage } from "@/features/corporate/corporate-pages";
+import { PocketDetailPage, PocketsPage } from "@/features/consumer/pockets-page";
 
 export function App() {
   return (
@@ -45,6 +44,8 @@ export function App() {
           <Route path="/app/branches/:id" element={<BranchesPage />} />
           <Route path="/app/bookings" element={<BookingsPage />} />
           <Route path="/app/bookings/:code" element={<BookingDetailPage />} />
+          <Route path="/app/pockets" element={<PocketsPage />} />
+          <Route path="/app/pockets/:id" element={<PocketDetailPage />} />
           <Route path="/app/pockets" element={<PocketsPage />} />
           <Route path="/app/pockets/:id" element={<PocketDetailPage />} />
           <Route path="/app/profile" element={<ProfilePage />} />

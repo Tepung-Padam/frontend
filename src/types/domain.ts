@@ -108,6 +108,11 @@ export interface Paginated<T> {
   pagination: { page: number; page_size: number; total_items: number; total_pages: number };
 }
 
+export interface EvidencePayload<T> { data: T; source: "REAL_MODEL_OUTPUT" | "RULE_BASED" | "SIMULATED" | "SANDBOX"; version: string; disclaimer: string; }
+export interface SharedPocketListItem { pocket_id: string; status: string; }
+export interface SharedPocketMember { id: string; customer_ref: string; status: string; contribution: string; contribution_amount: string | null; day_of_month: number | null; }
+export interface SharedPocket { id: string; name: string; kind: "KPR" | "BILLS" | "CHILD" | "GENERAL"; balance: string; daily_limit: string | null; dual_approval: boolean; members: SharedPocketMember[]; is_simulation: boolean; }
+
 export interface CustomerSummary {
   customer: Customer;
   accounts: Account[];
