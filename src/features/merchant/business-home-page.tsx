@@ -41,7 +41,6 @@ export function BusinessHomePage() {
             <div>
               <h2 className="text-xl font-bold text-business-navy">{summary.customer_ref}</h2>
               <p className="mt-1 text-xs text-business-muted">Jendela evaluasi {summary.window_days} hari</p>
-              <p className="mt-1 text-[10px] font-semibold text-business-faint">{codeLabel(summary.data_source_type)}</p>
             </div>
           </div>
           <Badge tone={summary.risk_indicator ? riskTone[summary.risk_indicator] : "unavailable"}>

@@ -96,7 +96,7 @@ export function CampaignsPage() {
           }}
         >
           <Plus size={16} />
-          {showForm ? "Tutup formulir" : "Buat campaign demo"}
+          {showForm ? "Tutup formulir" : "Buat campaign"}
         </Button>
       </div>
 

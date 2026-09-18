@@ -5,7 +5,7 @@ import { useSession } from "@/features/auth/use-session";
 const links = [
   { to: "/app", label: "Beranda", icon: Home },
   { to: "/app/activity", label: "Transaksi", icon: ReceiptText },
-  { to: "/app/bookings", label: "Kantong", icon: WalletCards },
+  { to: "/app/pockets", label: "Kantong", icon: WalletCards },
   { to: "/app/profile", label: "Profil", icon: CircleUserRound },
 ];
 

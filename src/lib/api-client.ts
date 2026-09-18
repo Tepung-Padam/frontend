@@ -24,6 +24,7 @@ import type {
   Customer,
   CustomerSummary,
   EngagementScoreRead,
+  Envelope,
   ForecastRead,
   InboxEvent,
   InboxMessage,
@@ -33,6 +34,13 @@ import type {
   OwnSummary,
   Paginated,
   ChurnPrediction,
+  PocketInvitation,
+  PocketKind,
+  PocketLedgerEntry,
+  PocketMembership,
+  PocketPaymentCategory,
+  PocketPaymentRecord,
+  PocketSummary,
   Recommendation,
   RelationshipScore,
   RetentionSummary,
@@ -409,4 +417,67 @@ export const api = {
       body: JSON.stringify(payload),
       headers: { "Idempotency-Key": crypto.randomUUID() },
     }),
+
+  // ── Shared Pockets (joint savings, e.g. KPR down-payment) ──────────────────
+  pockets: (page = 1, pageSize = 20) =>
+    request<Envelope<Paginated<PocketMembership>>>(
+      `/api/v1/consumer/shared-pockets?page=${page}&page_size=${pageSize}`,
+    ),
+  pocketInvitations: (page = 1, pageSize = 20) =>
+    request<Envelope<Paginated<PocketInvitation>>>(
+      `/api/v1/consumer/shared-pockets/invitations?page=${page}&page_size=${pageSize}`,
+    ),
+  pocketDetail: (pocketId: string) =>
+    request<Envelope<PocketSummary>>(`/api/v1/consumer/shared-pockets/${pocketId}`),
+  createPocket: (payload: { name: string; kind: PocketKind; daily_limit?: string; dual_approval?: boolean }) =>
+    request<Envelope<PocketSummary>>("/api/v1/consumer/shared-pockets", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      headers: { "Idempotency-Key": crypto.randomUUID() },
+    }),
+  invitePocketMember: (pocketId: string, customerRef: string) =>
+    request<Envelope<{ id: string; pocket_id: string; status: string; expires_at: string | null }>>(
+      `/api/v1/consumer/shared-pockets/${pocketId}/invitations`,
+      { method: "POST", body: JSON.stringify({ customer_ref: customerRef }) },
+    ),
+  respondPocketInvitation: (invitationId: string, decision: "ACCEPTED" | "DECLINED") =>
+    request<Envelope<{ id: string; pocket_id: string; status: string }>>(
+      `/api/v1/consumer/shared-pockets/invitations/${invitationId}/respond`,
+      { method: "POST", body: JSON.stringify({ decision }) },
+    ),
+  setPocketContributionRule: (pocketId: string, amount: string, dayOfMonth: number) =>
+    request<Envelope<{ id: string; contribution_amount: string; contribution_day: number }>>(
+      `/api/v1/consumer/shared-pockets/${pocketId}/contribution-rule`,
+      { method: "PUT", body: JSON.stringify({ amount, day_of_month: dayOfMonth }) },
+    ),
+  contributeToPocket: (pocketId: string, amount: string, scheduledDate?: string) =>
+    request<Envelope<PocketLedgerEntry>>(`/api/v1/consumer/shared-pockets/${pocketId}/contribute`, {
+      method: "POST",
+      body: JSON.stringify({ amount, ...(scheduledDate ? { scheduled_date: scheduledDate } : {}) }),
+      headers: { "Idempotency-Key": crypto.randomUUID() },
+    }),
+  createPocketPayment: (pocketId: string, amount: string, category: PocketPaymentCategory, description: string) =>
+    request<Envelope<PocketPaymentRecord>>(`/api/v1/consumer/shared-pockets/${pocketId}/payments`, {
+      method: "POST",
+      body: JSON.stringify({ amount, category, description }),
+      headers: { "Idempotency-Key": crypto.randomUUID() },
+    }),
+  reviewPocketPayment: (pocketId: string, paymentId: string, decision: "APPROVED" | "REJECTED", notes: string) =>
+    request<Envelope<PocketPaymentRecord>>(
+      `/api/v1/consumer/shared-pockets/${pocketId}/payments/${paymentId}/review`,
+      { method: "POST", body: JSON.stringify({ decision, notes }) },
+    ),
+  setPocketSpendingLimit: (pocketId: string, dailyLimit: string) =>
+    request<Envelope<{ daily_limit: string; timezone: string }>>(
+      `/api/v1/consumer/shared-pockets/${pocketId}/spending-limit`,
+      { method: "PUT", body: JSON.stringify({ daily_limit: dailyLimit }) },
+    ),
+  pocketTransactions: (pocketId: string, page = 1, pageSize = 20) =>
+    request<Envelope<Paginated<PocketLedgerEntry>>>(
+      `/api/v1/consumer/shared-pockets/${pocketId}/transactions?page=${page}&page_size=${pageSize}`,
+    ),
+  pocketPayments: (pocketId: string, page = 1, pageSize = 20) =>
+    request<Envelope<Paginated<PocketPaymentRecord>>>(
+      `/api/v1/consumer/shared-pockets/${pocketId}/payments?page=${page}&page_size=${pageSize}`,
+    ),
 };

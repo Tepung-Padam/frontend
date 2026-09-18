@@ -15,6 +15,11 @@ export type BookingStatus = "PENDING" | "CONFIRMED" | "CHECKED_IN" | "SERVING" |
 export type InboxEventType = "VIEWED" | "ACCEPTED" | "DECLINED";
 export type ActionType = "QRIS_MISSION" | "BILL_PAYMENT_MISSION" | "PERSONALIZED_REWARD" | "DAILY_BANKING_ENGAGEMENT" | "MERCHANT_RETENTION_OFFER" | "RM_OUTREACH" | "PRODUCT_EDUCATION" | "NO_ACTION";
 export type CampaignStatus = "DRAFT" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+export type PocketKind = "KPR" | "BILLS" | "CHILD" | "GENERAL";
+export type PocketMemberStatus = "PENDING" | "ACTIVE" | "DECLINED" | "EXPIRED";
+export type PocketPaymentStatus = "PENDING" | "EXECUTED" | "REJECTED";
+export type PocketLedgerDirection = "CREDIT" | "DEBIT";
+export type PocketPaymentCategory = "BNI_GRIYA" | "QRIS_SIMULATED" | "ELECTRICITY" | "WATER" | "INTERNET" | "SCHOOL_PAYMENT";
 
 export interface AppUser {
   id: string;
@@ -336,4 +341,13 @@ export interface EngagementScoreData {
 export interface EngagementScoreRead { data: EngagementScoreData; source: "RULE_BASED"; version: string; disclaimer: string; }
 export interface ActiveModel { id: string | null; name: string; type: "LOGISTIC_REGRESSION" | "XGBOOST"; version: string | null; feature_schema_version: string | null; training_dataset_version: string | null; training_timestamp: string | null; thresholds: { medium: number; high: number }; metrics: { accuracy?: number | null; threshold?: number | null; sample_count?: number | null; roc_auc: number | null; pr_auc: number | null; precision_at_10_percent: number | null; recall_at_10_percent: number | null; lift_at_10_percent: number | null }; is_available: boolean; disclosure: string; }
 export interface Campaign { id: string; name: string; campaign_type: ActionType; status: CampaignStatus; description: string; is_simulation: boolean; created_at: string; updated_at: string; }
+
+// ── Shared Pockets (joint savings, e.g. KPR down-payment) ──────────────────────
+export interface Envelope<T> { data: T; version: string; source: string; disclaimer: string; }
+export interface PocketMemberSummary { id: string; customer_ref: string; status: PocketMemberStatus; contribution: string; contribution_amount: string | null; day_of_month: number | null; }
+export interface PocketSummary { id: string; name: string; kind: PocketKind; balance: string; daily_limit: string | null; dual_approval: boolean; members: PocketMemberSummary[]; is_simulation: true; }
+export interface PocketMembership { pocket_id: string; status: PocketMemberStatus; }
+export interface PocketInvitation { id: string; pocket_id: string; status: PocketMemberStatus; expires_at: string | null; }
+export interface PocketLedgerEntry { id: string; actor_customer_id: string; amount: string; balance_after: string; direction: PocketLedgerDirection; description: string; category: string; created_at: string; is_simulation: boolean; }
+export interface PocketPaymentRecord { id: string; initiated_by: string; approved_by: string | null; amount: string; status: PocketPaymentStatus; category: PocketPaymentCategory; description: string; created_at: string; }
 export interface CampaignTarget { id: string; campaign_id: string; customer_id: string; recommendation_id: string | null; assigned_at: string; }
